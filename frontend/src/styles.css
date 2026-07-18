@@ -100,6 +100,9 @@ main { width: min(1580px, calc(100% - clamp(28px, 5vw, 80px))); margin: 0 auto; 
 .call-truth span, .call-truth small { color: var(--faint); font: 400 8px var(--mono); text-transform: uppercase; }
 .call-truth strong { margin: 3px 0; color: #cbd6d3; font: 500 10px var(--mono); }
 
+.panel-error-fallback { margin-top: 14px; padding: 20px; border: 1px solid rgba(255,98,95,.3); background: rgba(255,98,95,.06); }
+.panel-error-fallback p { margin: 8px 0; color: #cad5d2; font-size: 12px; }
+.panel-error-fallback small { color: var(--faint); font: 400 9px var(--mono); }
 .voice-panel { margin-top: 14px; min-height: 218px; display: grid; grid-template-columns: 170px 300px 1fr; border: 1px solid var(--line); background: linear-gradient(105deg, rgba(255,107,53,.08), transparent 40%), var(--panel); }
 .voice-orb { display: grid; place-items: center; border-right: 1px solid var(--line); }
 .voice-orb::before, .voice-orb::after, .voice-orb span { content: ""; position: absolute; border-radius: 50%; }

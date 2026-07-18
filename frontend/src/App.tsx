@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CameraStage } from "./components/CameraStage";
 import { DemoBanner } from "./components/DemoBanner";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { HealthStrip } from "./components/HealthStrip";
 import { IncidentControls } from "./components/IncidentControls";
 import { StatusPanel } from "./components/StatusPanel";
@@ -94,7 +95,9 @@ export default function App() {
           </div>
         </section>
 
-        <VoicePanel incident={incident} />
+        <ErrorBoundary fallbackLabel="IGNIS voice">
+          <VoicePanel incident={incident} />
+        </ErrorBoundary>
 
         <section className="lower-grid">
           <Timeline events={state.events} />
