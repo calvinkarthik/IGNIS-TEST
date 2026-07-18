@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import socket
+import subprocess
 import time
 import uuid
 from pathlib import Path
@@ -21,6 +22,22 @@ class Camera:
         except ImportError as exc:
             raise RuntimeError("OpenCV is not installed for this target image.") from exc
         self.cv2 = cv2
+        self.width = width
+        self.height = height
+        self.qnx_process: subprocess.Popen[bytes] | None = None
+        if source.startswith("qnx:"):
+            unit = source.partition(":")[2] or "1"
+            helper = Path(__file__).resolve().parents[1] / "qnx_camera_capture"
+            if not helper.is_file():
+                raise RuntimeError(
+                    f"QNX camera helper is missing: {helper}. "
+                    "Run sh poc/pi/build-qnx-camera.sh on the Pi."
+                )
+            self.capture = None
+            self.qnx_process = subprocess.Popen(
+                [str(helper), unit], stdout=subprocess.PIPE, bufsize=0
+            )
+            return
         parsed_source: str | int = int(source) if source.isdigit() else source
         self.capture = cv2.VideoCapture(parsed_source)
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -32,6 +49,30 @@ class Camera:
             )
 
     def read(self):
+        if self.qnx_process is not None:
+            assert self.qnx_process.stdout is not None
+            header = self.qnx_process.stdout.readline()
+            if not header:
+                code = self.qnx_process.poll()
+                raise RuntimeError(f"QNX camera helper stopped unexpectedly (exit={code})")
+            fields = header.decode("ascii", errors="replace").strip().split()
+            if len(fields) != 3 or fields[0] != "IGNISNV12":
+                raise RuntimeError(f"invalid QNX camera frame header: {header!r}")
+            width, height = int(fields[1]), int(fields[2])
+            expected = width * height * 3 // 2
+            raw = bytearray()
+            while len(raw) < expected:
+                chunk = self.qnx_process.stdout.read(expected - len(raw))
+                if not chunk:
+                    raise RuntimeError("QNX camera frame ended before all NV12 data arrived")
+                raw.extend(chunk)
+            import numpy as np
+
+            nv12 = np.frombuffer(raw, dtype=np.uint8).reshape((height * 3 // 2, width))
+            frame = self.cv2.cvtColor(nv12, self.cv2.COLOR_YUV2BGR_NV12)
+            if (width, height) != (self.width, self.height):
+                frame = self.cv2.resize(frame, (self.width, self.height))
+            return frame
         ok, frame = self.capture.read()
         if not ok or frame is None:
             raise RuntimeError("camera frame capture failed")
@@ -44,7 +85,15 @@ class Camera:
         return encoded.tobytes()
 
     def close(self) -> None:
-        self.capture.release()
+        if self.qnx_process is not None:
+            self.qnx_process.terminate()
+            try:
+                self.qnx_process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.qnx_process.kill()
+                self.qnx_process.wait()
+        elif self.capture is not None:
+            self.capture.release()
 
 
 class BackendStream:

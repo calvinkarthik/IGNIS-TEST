@@ -98,6 +98,30 @@ else
     info "No /dev/video* nodes; QNX Sensor Framework may expose the camera differently"
 fi
 
+case "$CAMERA_SOURCE" in
+qnx:*)
+    if [ ! -x "$REPO_ROOT/poc/pi/qnx_camera_capture" ]; then
+        missing "QNX camera helper; run: sh poc/pi/build-qnx-camera.sh"
+    elif PYTHONPATH="$REPO_ROOT/poc/pi${PYTHONPATH:+:$PYTHONPATH}" \
+        IGNIS_CAMERA_SOURCE="$CAMERA_SOURCE" python3 - <<'PY'
+import os
+from ignis_poc.edge import Camera
+
+camera = Camera(os.environ["IGNIS_CAMERA_SOURCE"], 640, 480)
+try:
+    frame = camera.read()
+    if frame is None or frame.shape != (480, 640, 3):
+        raise RuntimeError(f"unexpected frame shape: {getattr(frame, 'shape', None)}")
+finally:
+    camera.close()
+PY
+    then
+        ok "one real QNX Sensor Framework frame captured from: $CAMERA_SOURCE"
+    else
+        missing "QNX Sensor Framework camera source '$CAMERA_SOURCE' did not produce a frame"
+    fi
+    ;;
+*)
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import cv2' >/dev/null 2>&1; then
     if IGNIS_CAMERA_SOURCE="$CAMERA_SOURCE" python3 - <<'PY'
 import os
@@ -117,6 +141,8 @@ PY
         missing "camera source '$CAMERA_SOURCE' did not produce a frame through OpenCV"
     fi
 fi
+    ;;
+esac
 
 if command -v python3 >/dev/null 2>&1; then
     if IGNIS_BACKEND_HOST="$BACKEND_HOST" IGNIS_BACKEND_PORT="$BACKEND_PORT" python3 - <<'PY'
