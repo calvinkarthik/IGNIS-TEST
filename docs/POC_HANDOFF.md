@@ -78,6 +78,31 @@ If the Pi image does not include Python, OpenCV bindings, NumPy, or a QNX/ARM Te
 
 ## 5. Run the POC
 
+For the optional 320x480 local LCD, set these values in
+`poc/pi/ignis-poc.env` before starting:
+
+```sh
+export IGNIS_LCD_ENABLED='1'
+export IGNIS_LCD_WIDTH='320'
+export IGNIS_LCD_HEIGHT='480'
+```
+
+Build its native QNX Screen adapter once on the Pi:
+
+```sh
+sh poc/pi/build-qnx-lcd.sh
+```
+
+The preview uses the frame already captured for inference and draws the same
+fire/smoke boxes locally. It does not create another camera connection or alter
+the JPEG/detection traffic sent to the laptop. LCD rendering runs in a bounded
+background worker; stale LCD frames are dropped instead of delaying camera,
+inference, or TCP streaming. The QNX image must expose the LCD
+through QNX Screen; Linux framebuffer overlays and
+Waveshare Linux install scripts are not compatible with QNX. If that display
+driver is absent, the LCD preview disables itself while inference and laptop
+streaming continue.
+
 ```sh
 sh poc/pi/run-poc.sh
 ```

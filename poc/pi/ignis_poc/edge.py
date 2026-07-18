@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .core import Detection, FireVerifier
+from .lcd import LocalLcd
 from .model import TFLiteDetector
 from .protocol import PacketType, encode_packet, frame_payload, receive_ack
 
@@ -170,6 +171,7 @@ def run(args: argparse.Namespace) -> None:
     boot_id = uuid.uuid4().hex[:8]
     camera = Camera(args.camera, args.width, args.height)
     detector = TFLiteDetector(args.model, args.manifest, args.threshold)
+    lcd = LocalLcd(camera.cv2, args.lcd_width, args.lcd_height) if args.lcd else None
     verifier = FireVerifier(args.device_id, boot_id)
     stream = BackendStream(args.backend, args.port, args.device_id, token, boot_id)
     frame_sequence = 0
@@ -214,6 +216,8 @@ def run(args: argparse.Namespace) -> None:
                 },
                 monotonic_ns,
             )
+            if lcd is not None:
+                lcd.show(frame, detections)
             if state.incident_id:
                 response = "AWAITING_RESPONSE" if state.confirmed else "IDLE"
                 stream.send(
@@ -302,6 +306,8 @@ def run(args: argparse.Namespace) -> None:
     except KeyboardInterrupt:
         print("IGNIS POC stopped")
     finally:
+        if lcd is not None:
+            lcd.close()
         camera.close()
         stream.close()
 
@@ -346,6 +352,14 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--fps", type=float, default=5.0)
     result.add_argument("--threshold", type=float, default=0.45)
     result.add_argument("--jpeg-quality", type=int, default=75)
+    result.add_argument(
+        "--lcd",
+        action="store_true",
+        default=os.getenv("IGNIS_LCD_ENABLED", "0").lower() in {"1", "true", "yes", "on"},
+        help="show an annotated preview through the Pi's native QNX Screen service",
+    )
+    result.add_argument("--lcd-width", type=int, default=int(os.getenv("IGNIS_LCD_WIDTH", "320")))
+    result.add_argument("--lcd-height", type=int, default=int(os.getenv("IGNIS_LCD_HEIGHT", "480")))
     return result
 
 
