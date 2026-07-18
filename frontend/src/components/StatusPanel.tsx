@@ -28,11 +28,11 @@ export function StatusPanel({ incident }: { incident: Incident | null }) {
 
       <div className="metric-pair">
         <div>
-          <span className="metric-label">Fire signature</span>
+          <span className="metric-label">Peak fire signature</span>
           <strong>{fire}%</strong>
         </div>
         <div>
-          <span className="metric-label">Smoke signature</span>
+          <span className="metric-label">Peak smoke signature</span>
           <strong>{smoke}%</strong>
         </div>
       </div>
