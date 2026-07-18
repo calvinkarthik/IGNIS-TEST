@@ -73,14 +73,19 @@ export function CameraStage({ frame, detections, zones, staleAfterMs = 1_000 }: 
     const canvas = canvasRef.current;
     if (!canvas || !size.width || !size.height) return;
     const scale = window.devicePixelRatio || 1;
-    canvas.width = Math.round(size.width * scale);
-    canvas.height = Math.round(size.height * scale);
+    const pixelWidth = Math.round(size.width * scale);
+    const pixelHeight = Math.round(size.height * scale);
+    if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+    if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
     const context = canvas.getContext("2d");
     if (!context) return;
     context.setTransform(scale, 0, 0, scale, 0, 0);
-    context.clearRect(0, 0, size.width, size.height);
-    context.fillStyle = "#090d0f";
-    context.fillRect(0, 0, size.width, size.height);
+
+    const clearStage = () => {
+      context.clearRect(0, 0, size.width, size.height);
+      context.fillStyle = "#090d0f";
+      context.fillRect(0, 0, size.width, size.height);
+    };
 
     const drawOverlays = () => {
       context.lineJoin = "round";
@@ -123,6 +128,7 @@ export function CameraStage({ frame, detections, zones, staleAfterMs = 1_000 }: 
     };
 
     if (!frame) {
+      clearStage();
       context.fillStyle = "#8a9b97";
       context.font = "500 14px system-ui";
       context.textAlign = "center";
@@ -130,16 +136,22 @@ export function CameraStage({ frame, detections, zones, staleAfterMs = 1_000 }: 
       context.textAlign = "start";
       return;
     }
+    let cancelled = false;
     const image = new Image();
     const objectUrl = base64BlobUrl(frame.jpeg_base64);
     image.onload = () => {
+      if (cancelled) return;
+      clearStage();
       context.drawImage(image, letterbox.x, letterbox.y, letterbox.width, letterbox.height);
       drawOverlays();
       URL.revokeObjectURL(objectUrl);
     };
     image.onerror = () => URL.revokeObjectURL(objectUrl);
     image.src = objectUrl;
-    return () => URL.revokeObjectURL(objectUrl);
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(objectUrl);
+    };
   }, [detections, frame, letterbox, size.height, size.width, zones]);
 
   return (
