@@ -1,0 +1,8 @@
+model: yolo11n.pt
+image_size: 320
+epochs: 80
+batch_size: 16
+classes: [fire, smoke]
+hard_negative_fraction: 0.35
+output: outputs/fire-smoke-v1
+

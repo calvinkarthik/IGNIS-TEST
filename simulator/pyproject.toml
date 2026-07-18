@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ignis-simulator"
+version = "0.1.0"
+description = "Deterministic IGNIS QNX-device simulator"
+requires-python = ">=3.11"
+dependencies = ["Pillow==11.3.0"]
+
+[project.scripts]
+ignis-simulator = "ignis_simulator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ignis_simulator*"]
+

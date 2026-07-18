@@ -1,0 +1,11 @@
+{
+  "name": "confirmed_fire",
+  "fps": 10,
+  "events": [
+    {"time_seconds": 0.0, "fire_confidence": 0.0, "smoke_confidence": 0.0},
+    {"time_seconds": 1.0, "fire_confidence": 0.0, "smoke_confidence": 0.68, "state": "SUSPECTED"},
+    {"time_seconds": 2.5, "fire_confidence": 0.61, "smoke_confidence": 0.73, "state": "VERIFYING"},
+    {"time_seconds": 5.2, "fire_confidence": 0.88, "smoke_confidence": 0.76, "state": "CONFIRMED"}
+  ]
+}
+

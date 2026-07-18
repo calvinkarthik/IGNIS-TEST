@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      APP_HOST: 0.0.0.0
+      FRONTEND_ORIGIN: http://localhost:5173
+      DATABASE_URL: sqlite:////data/ignis.db
+      IGNIS_DEVICE_TOKEN: ${IGNIS_DEVICE_TOKEN:-replace-me}
+    ports:
+      - "8000:8000"
+      - "9001:9001"
+    volumes:
+      - ignis-data:/data
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+volumes:
+  ignis-data:
+

@@ -1,0 +1,10 @@
+{
+  "name": "hard_negative",
+  "fps": 10,
+  "events": [
+    {"time_seconds": 0.0, "fire_confidence": 0.0, "smoke_confidence": 0.0, "state": "CLEAR"},
+    {"time_seconds": 2.0, "fire_confidence": 0.34, "smoke_confidence": 0.11, "state": "CLEAR"},
+    {"time_seconds": 8.0, "fire_confidence": 0.0, "smoke_confidence": 0.0, "state": "CLEAR"}
+  ]
+}
+

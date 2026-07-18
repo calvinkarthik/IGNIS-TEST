@@ -1,0 +1,10 @@
+records: datasets/records.json
+images_root: datasets/images
+annotations_root: annotations
+source_license_manifest: datasets/SOURCES.md
+split:
+  train: 0.70
+  validation: 0.15
+  test: 0.15
+  seed: ignis-v1
+

@@ -1,0 +1,11 @@
+# Fully pinned direct requirements. Regenerate after dependency review with:
+# python -m pip install -r requirements-dev.txt && python -m pip freeze
+fastapi==0.116.1
+httpx==0.28.1
+pydantic==2.11.7
+python-dotenv==1.1.1
+uvicorn==0.35.0
+pytest==8.4.1
+pytest-asyncio==1.1.0
+ruff==0.12.4
+

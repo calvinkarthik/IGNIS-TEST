@@ -1,0 +1,11 @@
+{
+  "name": "ambiguous_smoke",
+  "fps": 10,
+  "events": [
+    {"time_seconds": 0.0, "smoke_confidence": 0.0, "state": "CLEAR"},
+    {"time_seconds": 1.0, "smoke_confidence": 0.67, "state": "SUSPECTED"},
+    {"time_seconds": 3.0, "smoke_confidence": 0.70, "state": "VERIFYING"},
+    {"time_seconds": 10.0, "smoke_confidence": 0.0, "state": "CLEAR"}
+  ]
+}
+

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ignis.local/schemas/model-manifest-v1.json",
+  "title": "IGNIS TensorFlow Lite model manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "model_name", "model_sha256", "input", "outputs", "labels"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "model_name": {"type": "string", "minLength": 1, "maxLength": 128},
+    "model_sha256": {"type": "string", "pattern": "^(replace-at-export|[a-fA-F0-9]{64})$"},
+    "input": {
+      "type": "object",
+      "required": ["index", "width", "height", "channels", "layout", "dtype", "color_order", "normalization"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "channels": {"const": 3},
+        "layout": {"const": "NHWC"},
+        "dtype": {"enum": ["uint8", "int8", "float32"]},
+        "color_order": {"enum": ["RGB", "BGR"]},
+        "normalization": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {"enum": ["zero_to_one", "minus_one_to_one", "none"]}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "object",
+      "properties": {
+        "decoder": {"enum": ["ssd", "yolo_v8"]},
+        "boxes_index": {"type": "integer", "minimum": 0},
+        "classes_index": {"type": "integer", "minimum": 0},
+        "scores_index": {"type": "integer", "minimum": 0},
+        "count_index": {"type": "integer", "minimum": 0},
+        "predictions_index": {"type": "integer", "minimum": 0},
+        "box_order": {"enum": ["ymin_xmin_ymax_xmax", "center_x_center_y_width_height"]},
+        "coordinates_are_input_pixels": {"type": "boolean"},
+        "classes_are_zero_based": {"type": "boolean"}
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": ["decoder", "boxes_index", "classes_index", "scores_index", "count_index", "box_order", "classes_are_zero_based"],
+          "properties": {
+            "decoder": {"const": "ssd"},
+            "box_order": {"const": "ymin_xmin_ymax_xmax"}
+          }
+        },
+        {
+          "required": ["decoder", "predictions_index", "box_order", "coordinates_are_input_pixels", "classes_are_zero_based"],
+          "properties": {
+            "decoder": {"const": "yolo_v8"},
+            "box_order": {"const": "center_x_center_y_width_height"}
+          }
+        }
+      ]
+    },
+    "labels": {
+      "type": "object",
+      "required": ["0", "1"],
+      "properties": {
+        "0": {"enum": ["fire", "smoke"]},
+        "1": {"enum": ["fire", "smoke"]}
+      },
+      "additionalProperties": false
+    }
+  }
+}

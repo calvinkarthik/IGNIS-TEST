@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "configuration_version": 1,
+  "frame_aspect_ratio": 1.333333,
+  "zones": [
+    {
+      "id": "zone-stovetop",
+      "name": "Stovetop",
+      "points": [[0.10, 0.25], [0.48, 0.25], [0.48, 0.80], [0.10, 0.80]]
+    },
+    {
+      "id": "zone-battery",
+      "name": "Battery charging area",
+      "points": [[0.60, 0.35], [0.92, 0.35], [0.92, 0.88], [0.60, 0.88]]
+    }
+  ]
+}
+

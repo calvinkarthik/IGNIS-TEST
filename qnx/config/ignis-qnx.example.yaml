@@ -1,0 +1,22 @@
+device:
+  device_id: ignis-qnxpi-01
+  mode: qnx
+  log_level: INFO
+camera:
+  width: 640
+  height: 480
+  capture_fps: 12
+  inference_fps: 8
+  stream_fps: 7
+  pixel_format: AUTO
+stream:
+  backend_host: 192.168.137.1
+  backend_port: 9001
+  reconnect_initial_ms: 250
+  reconnect_max_ms: 10000
+evidence:
+  local_root: /data/home/qnxuser/ignis/data/incidents
+alarm:
+  enabled: false
+  implementation: null
+

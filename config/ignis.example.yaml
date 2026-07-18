@@ -1,0 +1,46 @@
+device:
+  device_id: ignis-qnxpi-01
+  mode: replay
+  log_level: INFO
+camera:
+  width: 640
+  height: 480
+  capture_fps: 12
+  inference_fps: 8
+  stream_fps: 7
+  pixel_format: AUTO
+  stale_frame_ms: 1000
+model:
+  path: /data/home/qnxuser/ignis/models/fire_smoke_detector.tflite
+  manifest_path: /data/home/qnxuser/ignis/models/model_manifest.json
+  labels_path: /data/home/qnxuser/ignis/models/labels.txt
+  num_threads: 2
+incident:
+  suspected_fire_confidence: 0.55
+  suspected_smoke_confidence: 0.65
+  persistence_window_frames: 10
+  persistence_required_frames: 6
+  confirmed_fire_confidence: 0.75
+  confirmed_fire_duration_ms: 2000
+  confirmed_visible_duration_ms: 4000
+  clear_grace_period_ms: 2000
+  response_timeout_ms: 10000
+  growth_window_ms: 3000
+  growth_minimum_percent: 20.0
+stream:
+  backend_host: 127.0.0.1
+  backend_port: 9001
+  reconnect_initial_ms: 250
+  reconnect_max_ms: 10000
+  jpeg_quality: 75
+  max_payload_bytes: 2097152
+evidence:
+  rolling_buffer_seconds: 15
+  pre_event_seconds: 5
+  post_event_seconds: 5
+  local_root: /data/home/qnxuser/ignis/data/incidents
+  max_local_incidents: 50
+alarm:
+  enabled: false
+  implementation: null
+

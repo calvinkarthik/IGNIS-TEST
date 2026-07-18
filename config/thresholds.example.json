@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "configuration_version": 1,
+  "suspected_fire_confidence": 0.55,
+  "suspected_smoke_confidence": 0.65,
+  "persistence_window_frames": 10,
+  "persistence_required_frames": 6,
+  "confirmed_fire_confidence": 0.75,
+  "confirmed_fire_duration_ms": 2000,
+  "confirmed_visible_duration_ms": 4000,
+  "clear_grace_period_ms": 2000,
+  "response_timeout_ms": 10000,
+  "growth_window_ms": 3000,
+  "growth_minimum_percent": 20.0,
+  "zone_minimum_overlap": 0.25,
+  "timing_uncertainty_seconds": 0.5
+}
+

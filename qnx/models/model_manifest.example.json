@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "model_name": "ignis_fire_smoke_detector",
+  "model_sha256": "replace-at-export",
+  "input": {
+    "index": 0,
+    "width": 320,
+    "height": 320,
+    "channels": 3,
+    "layout": "NHWC",
+    "dtype": "uint8",
+    "color_order": "RGB",
+    "normalization": {"type": "zero_to_one"}
+  },
+  "outputs": {
+    "decoder": "yolo_v8",
+    "predictions_index": 0,
+    "box_order": "center_x_center_y_width_height",
+    "coordinates_are_input_pixels": true,
+    "classes_are_zero_based": true
+  },
+  "labels": {"0": "fire", "1": "smoke"}
+}

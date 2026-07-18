@@ -1,0 +1,5 @@
+# These are for a Python-capable development/target image. QNX packages must match its ABI.
+numpy==2.3.2
+opencv-python-headless==4.12.0.88
+# Install the QNX/ARM-compatible TensorFlow Lite runtime supplied for the target.
+
