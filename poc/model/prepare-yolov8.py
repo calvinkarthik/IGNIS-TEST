@@ -97,7 +97,8 @@ def main() -> None:
             "decoder": "yolo_v8",
             "predictions_index": 0,
             "box_order": "center_x_center_y_width_height",
-            "coordinates_are_input_pixels": True,
+            # Ultralytics normalizes YOLO box coordinates during TFLite export.
+            "coordinates_are_input_pixels": False,
             "classes_are_zero_based": True,
         },
         "labels": {str(index): name for index, name in labels.items()},

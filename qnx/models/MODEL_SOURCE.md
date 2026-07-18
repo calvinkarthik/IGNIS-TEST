@@ -1,12 +1,18 @@
 # POC model source
 
-The temporary POC model is derived from `runs/detect/train/weights/best.pt` in:
+The temporary POC model is the pretrained `best.pt` from:
 
 ```text
-https://github.com/Abonia1/YOLOv8-Fire-and-Smoke-Detection
+https://huggingface.co/rabahdev/fire-smoke-yolov8n
 ```
 
-The source model declares three output classes: `Fire`, `default`, and `smoke`.
-IGNIS treats `fire` and `smoke` as hazard detections and explicitly ignores
-`default`. This model is for proof-of-concept evaluation only and is not a
-validated or safety-certified fire detector.
+The checkpoint is a 3.0-million-parameter YOLOv8n detector trained on D-Fire.
+It declares exactly two output classes: `0=smoke` and `1=fire`. The model card
+reports test mAP50 of 0.754 at 640-pixel input; IGNIS exports it at 320x320 for
+the Raspberry Pi POC. The source checkpoint SHA-256 is
+`b91633799ceb052c814b4f8b77a37efc9a40f002d528df97d74463585fa4f28f`.
+
+The model is distributed under AGPL-3.0. It is for proof-of-concept evaluation
+only and is not a validated or safety-certified fire detector. A displayed
+photo or video can trigger it; it does not establish that a physical fire is
+present.

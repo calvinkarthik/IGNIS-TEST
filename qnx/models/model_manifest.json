@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "model_name": "abonia-best",
-  "model_sha256": "6918f02c59c3beb771e6e23be7e0201fb24c2719093ec2476dcbdd971fc37b32",
+  "model_name": "rabahdev-fire-smoke-yolov8n-best",
+  "model_sha256": "31af4f9c126e2a3f0b72855b3ae79c551e603f6aba36c004c01188bc3a07a447",
   "input": {
     "index": 0,
     "width": 320,
@@ -22,11 +22,8 @@
     "classes_are_zero_based": true
   },
   "labels": {
-    "0": "fire",
-    "1": "default",
-    "2": "smoke"
+    "0": "smoke",
+    "1": "fire"
   },
-  "ignored_labels": [
-    "default"
-  ]
+  "ignored_labels": []
 }
