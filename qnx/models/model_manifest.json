@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "model_name": "abonia-best",
+  "model_sha256": "6918f02c59c3beb771e6e23be7e0201fb24c2719093ec2476dcbdd971fc37b32",
+  "input": {
+    "index": 0,
+    "width": 320,
+    "height": 320,
+    "channels": 3,
+    "layout": "NHWC",
+    "dtype": "float32",
+    "color_order": "RGB",
+    "normalization": {
+      "type": "zero_to_one"
+    }
+  },
+  "outputs": {
+    "decoder": "yolo_v8",
+    "predictions_index": 0,
+    "box_order": "center_x_center_y_width_height",
+    "coordinates_are_input_pixels": true,
+    "classes_are_zero_based": true
+  },
+  "labels": {
+    "0": "fire",
+    "1": "default",
+    "2": "smoke"
+  },
+  "ignored_labels": [
+    "default"
+  ]
+}

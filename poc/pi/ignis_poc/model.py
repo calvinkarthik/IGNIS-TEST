@@ -16,13 +16,18 @@ def _interpreter_class():
         return Interpreter
     except ImportError:
         try:
-            from tensorflow.lite import Interpreter
+            import tensorflow as tf
 
-            return Interpreter
+            return tf.lite.Interpreter
         except ImportError as exc:
-            raise RuntimeError(
-                "No TensorFlow Lite interpreter is installed for this QNX/ARM image."
-            ) from exc
+            try:
+                from ai_edge_litert.interpreter import Interpreter
+
+                return Interpreter
+            except ImportError:
+                raise RuntimeError(
+                    "No TensorFlow Lite interpreter is installed for this QNX/ARM image."
+                ) from exc
 
 
 class TFLiteDetector:
@@ -53,8 +58,15 @@ class TFLiteDetector:
     def _validate_contract(self) -> None:
         expected = self.manifest["input"]
         labels = {str(value).lower() for value in self.manifest["labels"].values()}
-        if labels != {"fire", "smoke"}:
-            raise RuntimeError("model manifest labels must contain exactly fire and smoke")
+        ignored_labels = {
+            str(value).lower() for value in self.manifest.get("ignored_labels", [])
+        }
+        if not {"fire", "smoke"}.issubset(labels):
+            raise RuntimeError("model manifest labels must contain fire and smoke")
+        if labels - {"fire", "smoke"} != ignored_labels:
+            raise RuntimeError(
+                "every non-hazard model label must be declared in ignored_labels"
+            )
         shape = [int(value) for value in self.input_detail["shape"]]
         wanted = [1, int(expected["height"]), int(expected["width"]), int(expected["channels"])]
         if shape != wanted:

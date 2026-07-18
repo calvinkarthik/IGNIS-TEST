@@ -45,8 +45,10 @@ def main() -> None:
     raw_names = model.names
     names = raw_names if isinstance(raw_names, dict) else dict(enumerate(raw_names))
     labels = {int(index): str(name).strip().lower() for index, name in names.items()}
-    if set(labels.values()) != {"fire", "smoke"} or len(labels) != 2:
-        raise SystemExit(f"weights must contain exactly fire and smoke classes; found {labels}")
+    hazard_labels = {"fire", "smoke"}
+    if not hazard_labels.issubset(set(labels.values())):
+        raise SystemExit(f"weights must contain fire and smoke classes; found {labels}")
+    ignored_labels = sorted(set(labels.values()) - hazard_labels)
 
     export_options = {
         "format": "tflite",
@@ -99,6 +101,7 @@ def main() -> None:
             "classes_are_zero_based": True,
         },
         "labels": {str(index): name for index, name in labels.items()},
+        "ignored_labels": ignored_labels,
     }
     args.manifest.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"POC model: {args.output}")

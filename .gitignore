@@ -18,6 +18,7 @@ frontend/dist/
 frontend/coverage/
 qnx/build/
 qnx/models/*.tflite
+!qnx/models/fire_smoke_detector.tflite
 qnx/data/
 training/datasets/*
 training/annotations/*
