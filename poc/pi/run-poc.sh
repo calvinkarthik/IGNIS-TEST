@@ -26,6 +26,7 @@ exec python3 -m ignis_poc.edge \
     --port "${IGNIS_BACKEND_PORT:-9001}" \
     --camera "${IGNIS_CAMERA_SOURCE:-0}" \
     --fps 10 \
+    --threshold "${IGNIS_DETECTION_THRESHOLD:-0.25}" \
     --model "${IGNIS_MODEL_PATH:-qnx/models/fire_smoke_detector.tflite}" \
     --manifest "${IGNIS_MODEL_MANIFEST:-qnx/models/model_manifest.json}" \
     --log "${IGNIS_POC_LOG:-poc/pi/data/ignis-poc.jsonl}"
