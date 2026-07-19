@@ -23,9 +23,10 @@ function readMessage(value: unknown): TranscriptLine | null {
 export function VoicePanel({ incident }: { incident: Incident | null }) {
   const [voiceState, setVoiceState] = useState("VOICE DISABLED");
   const [transcript, setTranscript] = useState<TranscriptLine[]>([]);
-  const [toolActivity, setToolActivity] = useState("No tool activity");
+  const [, setToolActivity] = useState("No tool activity");
 
   const conversation = useConversation({
+    volume: 0,
     onConnect: () => setVoiceState("LISTENING"),
     onDisconnect: () => setVoiceState("DISCONNECTED"),
     onError: (message: unknown) => {
@@ -99,6 +100,11 @@ export function VoicePanel({ incident }: { incident: Incident | null }) {
     () => !["VOICE DISABLED", "DISCONNECTED", "ERROR"].includes(voiceState),
     [voiceState],
   );
+  const isError = voiceState === "ERROR";
+  const isListening = voiceState === "LISTENING";
+  const isSpeaking = conversation.isSpeaking;
+  const lastIgnisLine = [...transcript].reverse().find((line) => line.speaker === "IGNIS");
+  const lastSystemLine = [...transcript].reverse().find((line) => line.speaker === "SYSTEM");
 
   const enable = async () => {
     if (!incident) return;
@@ -132,29 +138,42 @@ export function VoicePanel({ incident }: { incident: Incident | null }) {
   };
 
   return (
-    <section className="voice-panel" aria-label="Voice verification and escalation">
-      <div className="voice-orb" aria-hidden="true"><span /></div>
-      <div className="voice-summary">
-        <span className="section-kicker">Occupant verification</span>
-        <h2>IGNIS voice</h2>
-        <div className="voice-state"><span />{voiceState}</div>
-        <p>Voice is opt-in and constrained to typed, backend-validated incident tools.</p>
-        <button disabled={!incident} onClick={() => void (sessionActive ? disable() : enable())}>
-          {sessionActive ? "End voice session" : "Enable IGNIS voice"}
-        </button>
-      </div>
-      <div className="transcript" aria-live="polite">
-        <div className="transcript-heading"><span>Live transcript</span><small>{toolActivity}</small></div>
-        <div className="transcript-lines">
-          {transcript.length === 0 ? (
-            <p>Voice remains silent until enabled by an operator.</p>
-          ) : (
-            transcript.map((line, index) => (
-              <p key={`${line.speaker}-${index}`}><strong>{line.speaker}</strong>{line.text}</p>
-            ))
-          )}
+    <section className="voice-panel card" aria-label="Voice verification and escalation">
+      <div className="voice-header">
+        <div className={`voice-mic ${sessionActive ? "active" : ""}`} aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="2" width="6" height="12" rx="3" />
+            <path d="M5 10v1a7 7 0 0 0 14 0v-1" />
+            <path d="M12 18v3M9 21h6" />
+          </svg>
+        </div>
+        <div className={`voice-wave ${isSpeaking ? "active" : ""}`} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="voice-live">
+          <span className={`voice-live-dot ${isListening ? "active" : ""}`} />
+          {isListening ? "Live" : sessionActive ? "Connecting" : "Idle"}
         </div>
       </div>
+      <div className="voice-quote" aria-live="polite">
+        {isError ? (
+          <>
+            <span className="voice-status-label">Error</span>
+            <p className="quote-text">{lastSystemLine?.text ?? "Voice session failed."}</p>
+          </>
+        ) : lastIgnisLine ? (
+          <p className="quote-text">&ldquo;{lastIgnisLine.text}&rdquo;</p>
+        ) : (
+          <p className="quote-text quote-placeholder">IGNIS hasn&rsquo;t said anything yet.</p>
+        )}
+      </div>
+      <button disabled={!incident} onClick={() => void (sessionActive ? disable() : enable())}>
+        {sessionActive ? "End conversation" : "Talk to IGNIS"}
+      </button>
+      <span className="voice-credit">Powered by ElevenLabs</span>
     </section>
   );
 }
