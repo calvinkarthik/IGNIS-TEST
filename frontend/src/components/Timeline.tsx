@@ -7,7 +7,7 @@ function friendly(value: string) {
 export function Timeline({ events }: { events: TimelineEvent[] }) {
   const visible = events.slice(-8).reverse();
   return (
-    <section className="timeline-panel" aria-label="Incident event timeline">
+    <section className="timeline-panel card" aria-label="Incident event timeline">
       <div className="panel-heading">
         <div><span className="section-kicker">Preserved evidence</span><h2>Event timeline</h2></div>
         <span className="timeline-count">{events.length} EVENTS</span>

@@ -9,6 +9,7 @@ vi.mock("@elevenlabs/react", () => ({
     startSession: vi.fn(),
     endSession: vi.fn(),
     sendContextualUpdate: vi.fn(),
+    isSpeaking: false,
   }),
 }));
 
@@ -23,8 +24,8 @@ describe("VoicePanel", () => {
   it("reports microphone permission failure without starting a session", async () => {
     const user = userEvent.setup();
     render(<VoicePanel incident={confirmedIncident} />);
-    await user.click(screen.getByRole("button", { name: "Enable IGNIS voice" }));
-    expect(await screen.findByText("ERROR")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Talk to IGNIS" }));
+    expect(await screen.findByText("Error")).toBeInTheDocument();
     expect(await screen.findByText("Microphone permission denied")).toBeInTheDocument();
   });
 });

@@ -16,7 +16,7 @@ export function StatusPanel({ incident }: { incident: Incident | null }) {
   const fire = Math.round((incident?.peak_fire_confidence ?? 0) * 100);
   const smoke = Math.round((incident?.peak_smoke_confidence ?? 0) * 100);
   return (
-    <aside className={`status-panel hazard-${hazard.toLowerCase()}`} aria-label="Incident status">
+    <aside className={`status-panel card hazard-${hazard.toLowerCase()}`} aria-label="Incident status">
       <div className="section-kicker">Visual hazard state</div>
       <div className="hazard-state" data-testid="hazard-state">
         {hazard.replaceAll("_", " ")}

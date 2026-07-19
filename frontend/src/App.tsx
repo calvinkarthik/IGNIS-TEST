@@ -7,20 +7,8 @@ import { IncidentControls } from "./components/IncidentControls";
 import { StatusPanel } from "./components/StatusPanel";
 import { Timeline } from "./components/Timeline";
 import { VoicePanel } from "./components/VoicePanel";
-import { ZoneEditor } from "./components/ZoneEditor";
 import { useIgnisSocket } from "./hooks/useIgnisSocket";
 import type { ZoneConfiguration } from "./types";
-
-function ResponseCountdown({ confirmedAt, active }: { confirmedAt?: string | null; active: boolean }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, []);
-  if (!active || !confirmedAt) return <span>Standby</span>;
-  const remaining = Math.max(0, 10 - (now - Date.parse(confirmedAt)) / 1_000);
-  return <span>{remaining > 0 ? `${remaining.toFixed(1)} s` : "Backend validating eligibility"}</span>;
-}
 
 export default function App() {
   const { state, refreshEvents } = useIgnisSocket();
@@ -42,67 +30,50 @@ export default function App() {
     if (incident) void refreshEvents(incident.incident_id);
   }, [incident?.incident_id]);
 
-  const awaitingResponse = incident?.response_state === "AWAITING_RESPONSE";
   return (
     <div className="app-shell">
       <DemoBanner callsEnabled={state.demoCallsEnabled} />
       <header className="main-header">
         <div className="brand-block">
-          <div className="ignis-mark"><span>I</span></div>
+          <div className="ignis-mark" aria-hidden="true"><span>I</span></div>
           <div><h1>IGNIS</h1><p>Visual incident intelligence</p></div>
         </div>
-        <div className="header-center">
-          <span className="eyebrow">Edge authority</span>
-          <strong>QNX sees and decides</strong>
-        </div>
+        <div className="header-center"><h2>QNX edge authority</h2></div>
         <div className={`connection-pill ${state.connection.toLowerCase()}`}>
           <span />{state.connection}
         </div>
       </header>
 
-      <HealthStrip health={state.health} connection={state.connection} />
-
       <main>
-        <section className="primary-grid">
-          <div className="camera-column">
-            <div className="panel-heading camera-heading">
+        <section className="app-grid">
+          <StatusPanel incident={incident} />
+
+          <div className="camera-column card">
+            <div className="panel-heading">
               <div><span className="section-kicker">Observed evidence</span><h2>Live camera</h2></div>
-              <div className="camera-actions">
-                <ZoneEditor configuration={localZones} onSaved={setLocalZones} />
-                <span className="stream-meta">640 × 480 · bounded stream</span>
-              </div>
+              <span className="stream-meta">640 × 480 · bounded stream</span>
             </div>
             <CameraStage frame={state.frame} detections={state.detections} zones={localZones} />
             <div className="camera-caption">
-              <span>Bounding boxes and zones are normalized to the source image—not the outer panel.</span>
+              <span>Boxes and zones align to the source image.</span>
               <span>{state.detections?.inference_duration_ms?.toFixed(1) ?? "—"} ms inference</span>
             </div>
           </div>
-          <StatusPanel incident={incident} />
-        </section>
 
-        <section className="response-ribbon">
-          <div><span className="section-kicker">Deterministic response timer</span><strong><ResponseCountdown confirmedAt={incident?.confirmed_at} active={awaitingResponse} /></strong></div>
-          <p>
-            {awaitingResponse
-              ? "Awaiting a clear occupant response. Timeout is enforced by FastAPI, not by the voice model."
-              : "Escalation begins only after sustained visual confirmation and server-side eligibility checks."}
-          </p>
-          <div className="call-truth">
-            <span>Call state</span>
-            <strong>{String(state.callUpdate?.status ?? incident?.call_status ?? "NO REQUEST")}</strong>
-            <small>{incident?.call_status === "INITIATED" ? "Connection unknown" : "Provider evidence required"}</small>
+          <div className="side-column">
+            <ErrorBoundary fallbackLabel="IGNIS voice">
+              <VoicePanel incident={incident} />
+            </ErrorBoundary>
+            <Timeline events={state.events} />
           </div>
         </section>
 
-        <ErrorBoundary fallbackLabel="IGNIS voice">
-          <VoicePanel incident={incident} />
-        </ErrorBoundary>
-
-        <section className="lower-grid">
-          <Timeline events={state.events} />
-          <aside className="history-panel">
-            <div className="panel-heading"><div><span className="section-kicker">SQLite record</span><h2>Incident history</h2></div><span>{state.incidents.length}</span></div>
+        <section className="secondary-grid">
+          <aside className="history-panel card">
+            <div className="panel-heading">
+              <div><span className="section-kicker">SQLite record</span><h2>Incident history</h2></div>
+              <span>{state.incidents.length}</span>
+            </div>
             {state.incidents.length === 0 ? (
               <p className="empty-copy">No incidents have been received from the Pi.</p>
             ) : (
@@ -121,16 +92,17 @@ export default function App() {
               </div>
             )}
           </aside>
+          <IncidentControls incident={incident} callsEnabled={state.demoCallsEnabled} />
         </section>
-
-        <IncidentControls incident={incident} callsEnabled={state.demoCallsEnabled} />
       </main>
 
       <footer>
-        <span>IGNIS PROTOTYPE · VISUAL OBSERVATIONS ARE NOT CERTAINTY</span>
-        <span>Never replaces certified alarms or normal emergency procedures</span>
+        <HealthStrip health={state.health} connection={state.connection} />
+        <div className="footer-truth">
+          <span>IGNIS prototype · visual observations are not certainty</span>
+          <span>Never replaces certified alarms or normal emergency procedures</span>
+        </div>
       </footer>
     </div>
   );
 }
-

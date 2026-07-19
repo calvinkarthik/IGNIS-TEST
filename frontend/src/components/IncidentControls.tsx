@@ -35,7 +35,7 @@ export function IncidentControls({ incident, callsEnabled }: Props) {
   };
 
   return (
-    <section className="controls-panel" aria-label="Incident controls">
+    <section className="controls-panel card" aria-label="Incident controls">
       <div className="control-buttons">
         <button disabled={!confirmed || cancelled || pending !== null} onClick={() => setConfirming("confirm")}>
           Confirm emergency
