@@ -85,6 +85,7 @@ For the optional 480x320 local LCD, set these values in
 export IGNIS_LCD_ENABLED='1'
 export IGNIS_LCD_WIDTH='480'
 export IGNIS_LCD_HEIGHT='320'
+export IGNIS_LCD_FLASH_SECONDS='0.75'
 ```
 
 Build its native QNX SPI/ILI9486 adapter once on the Pi:
@@ -93,13 +94,15 @@ Build its native QNX SPI/ILI9486 adapter once on the Pi:
 sh poc/pi/build-qnx-lcd.sh
 ```
 
-The LCD is intentionally limited to one large static IGNIS logo with a white
-background and black lettering, written at POC startup. It does not receive
-detections, incident state, screenshots, blinking commands, or continuous camera
-frames. A volatile `/dev/shmem` lock and completion marker guarantee that only
-one helper writes the LCD per Pi boot. `run-poc.sh` also uses a single-instance
-lock so duplicate edge/camera processes cannot start. Camera and inference output
-remain on the laptop dashboard. The adapter uses
+The LCD shows one large IGNIS logo with a white background and black lettering.
+After the local verifier reaches `CONFIRMED`, it alternates between the logo and
+a solid red frame. It returns to the logo when the verifier resets five seconds
+after the last relevant detection. It never receives camera frames or detection
+boxes. One persistent native helper owns the LCD, blanks it during each complete
+frame replacement, writes the target frame twice, then reveals it. A volatile
+`/dev/shmem` writer lock prevents competing LCD helpers, and `run-poc.sh` uses a
+single-instance lock so duplicate edge/camera processes cannot start. Camera and
+inference output remain on the laptop dashboard. The adapter uses
 `/dev/io-spi/spi0/dev0`, the native `/dev/gpio/msg` interface, GPIO24 for
 command/data, and GPIO25 for reset. Linux framebuffer overlays and
 Waveshare Linux install scripts are not compatible with QNX. If SPI/GPIO access

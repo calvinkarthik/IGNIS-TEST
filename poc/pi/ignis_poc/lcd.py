@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import os
 import subprocess
 import threading
-import time
 from pathlib import Path
 from typing import Any
 
@@ -30,8 +28,6 @@ class LocalLcd:
         self.stopping = False
         self.logo = self.render_logo()
         self.red = self.render_alert()
-        self.off = self.render_off()
-        self.post_clear_seconds = max(0.25, min(10.0, float(os.getenv("IGNIS_LCD_POST_CLEAR_SECONDS", "10"))))
         try:
             helper = Path(__file__).resolve().parents[1] / "qnx_lcd_display"
             if not helper.is_file():
@@ -97,22 +93,9 @@ class LocalLcd:
 
     def render_alert(self) -> Any:
         np = __import__("numpy")
-        canvas = np.full((self.height, self.width, 3), (0, 0, 255), dtype=np.uint8)
-        self.cv2.putText(
-            canvas,
-            "FIRE",
-            (self.width // 2 - 90, self.height // 2 + 20),
-            self.cv2.FONT_HERSHEY_DUPLEX,
-            2.8,
-            (255, 255, 255),
-            6,
-            self.cv2.LINE_AA,
-        )
+        canvas = np.empty((self.height, self.width, 3), dtype=np.uint8)
+        canvas[:] = (0, 0, 255)
         return canvas
-
-    def render_off(self) -> Any:
-        np = __import__("numpy")
-        return np.zeros((self.height, self.width, 3), dtype=np.uint8)
 
     def set_alert(self, confirmed: bool) -> None:
         if not self.enabled:
@@ -126,50 +109,28 @@ class LocalLcd:
 
     def _display_loop(self) -> None:
         showing_red = False
-        post_clear_started = False
-        post_clear_deadline = 0.0
-        previous_alert = False
         while True:
             with self.condition:
                 if self.stopping:
                     return
                 alert = self.alert
-                now = time.monotonic()
-                if alert != previous_alert:
-                    previous_alert = alert
-                    if alert:
-                        post_clear_started = False
-                        showing_red = False
-                    else:
-                        post_clear_started = True
-                        post_clear_deadline = now + self.post_clear_seconds
-                        showing_red = False
 
             try:
                 if alert:
-                    self._write_frame(self.red)
+                    self._write_frame(self.logo if showing_red else self.red)
+                    showing_red = not showing_red
                     with self.condition:
                         self.condition.wait_for(
                             lambda: self.stopping or self.alert != alert,
                             timeout=self.flash_seconds,
                         )
-                elif post_clear_started and now < post_clear_deadline:
-                    frame = self.red if showing_red else self.off
-                    self._write_frame(frame)
-                    showing_red = not showing_red
-                    with self.condition:
-                        self.condition.wait_for(
-                            lambda: self.stopping or self.alert,
-                            timeout=self.flash_seconds,
-                        )
-                else:
-                    post_clear_started = False
-                    showing_red = False
+                elif showing_red:
                     self._write_frame(self.logo)
+                    showing_red = False
+                else:
                     with self.condition:
                         self.condition.wait_for(
                             lambda: self.stopping or self.alert,
-                            timeout=max(0.1, self.flash_seconds),
                         )
             except Exception as exc:
                 self._disable(exc)

@@ -171,7 +171,11 @@ def run(args: argparse.Namespace) -> None:
     boot_id = uuid.uuid4().hex[:8]
     camera = Camera(args.camera, args.width, args.height)
     detector = TFLiteDetector(args.model, args.manifest, args.threshold)
-    lcd = LocalLcd(camera.cv2, args.lcd_width, args.lcd_height) if args.lcd else None
+    lcd = (
+        LocalLcd(camera.cv2, args.lcd_width, args.lcd_height, args.lcd_flash_seconds)
+        if args.lcd
+        else None
+    )
     verifier = FireVerifier(args.device_id, boot_id)
     stream = BackendStream(args.backend, args.port, args.device_id, token, boot_id)
     frame_sequence = 0
@@ -189,6 +193,8 @@ def run(args: argparse.Namespace) -> None:
             frame = camera.read()
             detections, inference_ms = detector.detect(frame)
             state = verifier.update(monotonic_ns, detections)
+            if lcd is not None:
+                lcd.set_alert(state.confirmed)
             frame_sequence += 1
             jpeg = camera.jpeg(frame, args.jpeg_quality)
             height, width = frame.shape[:2]
@@ -354,10 +360,15 @@ def parser() -> argparse.ArgumentParser:
         "--lcd",
         action="store_true",
         default=os.getenv("IGNIS_LCD_ENABLED", "0").lower() in {"1", "true", "yes", "on"},
-        help="write one static IGNIS logo through the Pi's native QNX SPI service",
+        help="show the IGNIS logo and flash red for a locally confirmed incident",
     )
     result.add_argument("--lcd-width", type=int, default=int(os.getenv("IGNIS_LCD_WIDTH", "480")))
     result.add_argument("--lcd-height", type=int, default=int(os.getenv("IGNIS_LCD_HEIGHT", "320")))
+    result.add_argument(
+        "--lcd-flash-seconds",
+        type=float,
+        default=float(os.getenv("IGNIS_LCD_FLASH_SECONDS", "0.75")),
+    )
     return result
 
 

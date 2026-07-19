@@ -19,76 +19,44 @@
 #define SPI_INIT_CLOCK_HZ 10000000U
 #define SPI_FRAME_CLOCK_HZ 10000000U
 #define LCD_BAND_HEIGHT 1
-#define LCD_BOOT_LOCK_PATH "/dev/shmem/ignis-lcd-logo.lock"
-#define LCD_BOOT_DONE_PATH "/dev/shmem/ignis-lcd-logo.done"
+#define LCD_FRAME_PASSES 2
+#define LCD_WRITER_LOCK_PATH "/dev/shmem/ignis-lcd-writer.lock"
 
 static int spi_fd = -1;
 static int gpio_fd = -1;
-static int boot_lock_fd = -1;
-static int logo_marked_complete = 0;
+static int writer_lock_fd = -1;
 
 /*
- * /dev/shmem is volatile across boots.  O_EXCL provides the atomic writer
- * guard supported by this QNX image; the separate completion marker prevents
- * later POC launches from rewriting an already-correct display.
+ * O_EXCL provides the atomic single-writer guard supported by this QNX image.
+ * The helper owns SPI for its complete lifetime and removes the volatile lock
+ * when its input closes.
  */
-static void release_boot_guard(void) {
-    if (boot_lock_fd >= 0) {
-        close(boot_lock_fd);
-        boot_lock_fd = -1;
+static void release_writer_guard(void) {
+    if (writer_lock_fd >= 0) {
+        close(writer_lock_fd);
+        writer_lock_fd = -1;
     }
-    if (!logo_marked_complete) {
-        unlink(LCD_BOOT_LOCK_PATH);
-    }
+    unlink(LCD_WRITER_LOCK_PATH);
 }
 
-static int acquire_boot_guard(void) {
-    if (access(LCD_BOOT_DONE_PATH, F_OK) == 0) {
-        fprintf(stderr, "IGNIS LCD logo already written this boot; skipping\n");
-        return 1;
-    }
-    boot_lock_fd = open(LCD_BOOT_LOCK_PATH, O_WRONLY | O_CREAT | O_EXCL, 0600);
-    if (boot_lock_fd < 0) {
+static int acquire_writer_guard(void) {
+    writer_lock_fd = open(LCD_WRITER_LOCK_PATH, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (writer_lock_fd < 0) {
         if (errno == EEXIST) {
             fprintf(stderr, "IGNIS LCD writer already active; skipping\n");
             return 1;
         }
-        perror(LCD_BOOT_LOCK_PATH);
+        perror(LCD_WRITER_LOCK_PATH);
         return -1;
     }
-    if (atexit(release_boot_guard) != 0) {
-        perror("IGNIS LCD boot guard cleanup");
-        close(boot_lock_fd);
-        boot_lock_fd = -1;
-        unlink(LCD_BOOT_LOCK_PATH);
+    if (atexit(release_writer_guard) != 0) {
+        perror("IGNIS LCD writer guard cleanup");
+        close(writer_lock_fd);
+        writer_lock_fd = -1;
+        unlink(LCD_WRITER_LOCK_PATH);
         return -1;
-    }
-    if (access(LCD_BOOT_DONE_PATH, F_OK) == 0) {
-        fprintf(stderr, "IGNIS LCD logo already written this boot; skipping\n");
-        release_boot_guard();
-        return 1;
     }
     return 0;
-}
-
-static int mark_logo_complete(void) {
-    int done_fd = open(LCD_BOOT_DONE_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    if (done_fd < 0) {
-        perror(LCD_BOOT_DONE_PATH);
-        return -1;
-    }
-    const char completed = '1';
-    int result = write(done_fd, &completed, 1) == 1 ? 0 : -1;
-    if (result != 0) {
-        perror("IGNIS LCD completion marker");
-    } else {
-        logo_marked_complete = 1;
-        close(boot_lock_fd);
-        boot_lock_fd = -1;
-        unlink(LCD_BOOT_LOCK_PATH);
-    }
-    close(done_fd);
-    return result;
 }
 
 static int gpio_message(int pin, unsigned subtype, unsigned value) {
@@ -292,6 +260,25 @@ static int lcd_write_bgr(const uint8_t *bgr) {
     return 0;
 }
 
+static int lcd_replace_bgr(const uint8_t *bgr) {
+    /* Hide partial rows, then repeat the complete target frame before reveal. */
+    if (lcd_command(0x28, NULL, 0) != 0) {
+        return -1;
+    }
+    usleep(20000);
+    for (int pass = 0; pass < LCD_FRAME_PASSES; ++pass) {
+        if (lcd_write_bgr(bgr) != 0) {
+            lcd_command(0x29, NULL, 0);
+            return -1;
+        }
+    }
+    if (lcd_command(0x29, NULL, 0) != 0) {
+        return -1;
+    }
+    usleep(20000);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     int width = argc > 1 ? atoi(argv[1]) : LCD_WIDTH;
     int height = argc > 2 ? atoi(argv[2]) : LCD_HEIGHT;
@@ -300,7 +287,7 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    int guard = acquire_boot_guard();
+    int guard = acquire_writer_guard();
     if (guard > 0) {
         return 0;
     }
@@ -334,31 +321,29 @@ int main(int argc, char **argv) {
         return 7;
     }
     char header[80];
-    int frame_width = 0;
-    int frame_height = 0;
-    if (fgets(header, sizeof(header), stdin) == NULL ||
-        sscanf(header, "IGNISBGR %d %d", &frame_width, &frame_height) != 2 ||
-        frame_width != width || frame_height != height) {
-        fprintf(stderr, "invalid or missing IGNIS LCD frame header\n");
-        free(frame);
-        close(gpio_fd);
-        close(spi_fd);
-        return 8;
+    unsigned long frame_number = 0;
+    while (fgets(header, sizeof(header), stdin) != NULL) {
+        int frame_width = 0;
+        int frame_height = 0;
+        if (sscanf(header, "IGNISBGR %d %d", &frame_width, &frame_height) != 2 ||
+            frame_width != width || frame_height != height) {
+            fprintf(stderr, "invalid IGNIS LCD frame header\n");
+            free(frame);
+            close(gpio_fd);
+            close(spi_fd);
+            return 8;
+        }
+        if (fread(frame, 1, frame_bytes, stdin) != frame_bytes ||
+            lcd_replace_bgr(frame) != 0) {
+            free(frame);
+            close(gpio_fd);
+            close(spi_fd);
+            return 9;
+        }
+        ++frame_number;
+        fprintf(stderr, "IGNIS LCD frame %lu complete\n", frame_number);
     }
-    if (fread(frame, 1, frame_bytes, stdin) != frame_bytes ||
-        lcd_write_bgr(frame) != 0) {
-        free(frame);
-        close(gpio_fd);
-        close(spi_fd);
-        return 9;
-    }
-    fprintf(stderr, "IGNIS LCD static logo complete\n");
-    if (mark_logo_complete() != 0) {
-        free(frame);
-        close(gpio_fd);
-        close(spi_fd);
-        return 11;
-    }
+    fprintf(stderr, "IGNIS LCD writer stopped\n");
     free(frame);
     close(gpio_fd);
     close(spi_fd);
