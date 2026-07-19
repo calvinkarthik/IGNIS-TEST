@@ -49,7 +49,18 @@ def test_confirmed_alert_frame_is_solid_red() -> None:
     assert np.all(alert == (0, 0, 255))
 
 
-def test_alert_worker_alternates_and_returns_to_logo() -> None:
+def test_off_frame_is_solid_black() -> None:
+    lcd = LocalLcd.__new__(LocalLcd)
+    lcd.width = 480
+    lcd.height = 320
+
+    off = lcd.render_off()
+
+    assert off.shape == (320, 480, 3)
+    assert np.all(off == (0, 0, 0))
+
+
+def test_alert_worker_flashes_off_and_red_then_returns_to_logo() -> None:
     lcd = LocalLcd.__new__(LocalLcd)
     lcd.enabled = True
     lcd.condition = threading.Condition()
@@ -58,6 +69,7 @@ def test_alert_worker_alternates_and_returns_to_logo() -> None:
     lcd.flash_seconds = 0.01
     lcd.logo = np.zeros((1, 1, 3), dtype=np.uint8)
     lcd.red = np.full((1, 1, 3), (0, 0, 255), dtype=np.uint8)
+    lcd.off = np.full((1, 1, 3), (1, 1, 1), dtype=np.uint8)
     writes = []
     alternated = threading.Event()
 
@@ -82,7 +94,7 @@ def test_alert_worker_alternates_and_returns_to_logo() -> None:
         lcd.condition.notify_all()
     worker.join(timeout=1)
 
-    assert writes[0] is lcd.red
-    assert writes[1] is lcd.logo
+    assert writes[0] is lcd.off
+    assert writes[1] is lcd.red
     assert writes[-1] is lcd.logo
     assert not worker.is_alive()

@@ -20,6 +20,33 @@ function readMessage(value: unknown): TranscriptLine | null {
   };
 }
 
+function dynamicVariables(context: Record<string, unknown>): Record<string, string | number | boolean> {
+  const variables: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(context)) {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      variables[key] = value;
+    } else if (value === null || value === undefined) {
+      variables[key] = "unknown";
+    } else {
+      variables[key] = JSON.stringify(value);
+    }
+  }
+  return variables;
+}
+
+function incidentVoicePrompt(context: Record<string, unknown>): string {
+  return [
+    "You are IGNIS calling about the active camera fire/smoke demo incident.",
+    "You already have the incident information. Do not ask the occupant to tell you what incident you are calling about.",
+    "Open by saying IGNIS detected a sustained fire or smoke signature in the camera view.",
+    "Ask exactly whether this is a real emergency or the planned phone/still-image demo.",
+    "If the occupant says demo, test, phone image, video, screenshot, controlled, or false alarm, call cancel_escalation.",
+    "If the occupant says real emergency, call confirm_emergency, tell them to move away and leave if safe, then call_demo_dispatch.",
+    "Use this incident context:",
+    JSON.stringify(context),
+  ].join("\n");
+}
+
 export function VoicePanel({ incident }: { incident: Incident | null }) {
   const [voiceState, setVoiceState] = useState("VOICE DISABLED");
   const [transcript, setTranscript] = useState<TranscriptLine[]>([]);
@@ -103,8 +130,8 @@ export function VoicePanel({ incident }: { incident: Incident | null }) {
   const isError = voiceState === "ERROR";
   const isListening = voiceState === "LISTENING";
   const isSpeaking = conversation.isSpeaking;
-  const lastIgnisLine = [...transcript].reverse().find((line) => line.speaker === "IGNIS");
   const lastSystemLine = [...transcript].reverse().find((line) => line.speaker === "SYSTEM");
+  const visibleTranscript = transcript.filter((line) => line.speaker !== "SYSTEM").slice(-6);
 
   const enable = async () => {
     if (!incident) return;
@@ -114,7 +141,17 @@ export function VoicePanel({ incident }: { incident: Incident | null }) {
       permission.getTracks().forEach((track) => track.stop());
       setVoiceState("CONNECTING");
       const { signed_url: signedUrl, context } = await api.signedUrl(incident.incident_id);
-      await conversation.startSession({ signedUrl });
+      const variables = dynamicVariables(context);
+      await conversation.startSession({
+        signedUrl,
+        dynamicVariables: variables,
+        overrides: {
+          agent: {
+            firstMessage: `IGNIS detected a sustained fire or smoke signature in the camera view. Is this a real emergency, or is this the phone demo image?`,
+            prompt: { prompt: incidentVoicePrompt(context) },
+          },
+        },
+      });
       conversation.sendContextualUpdate(JSON.stringify(context));
       setTranscript((current) => [
         ...current,
@@ -162,12 +199,21 @@ export function VoicePanel({ incident }: { incident: Incident | null }) {
         {isError ? (
           <>
             <span className="voice-status-label">Error</span>
-            <p className="quote-text">{lastSystemLine?.text ?? "Voice session failed."}</p>
+          <p className="quote-text">{lastSystemLine?.text ?? "Voice session failed."}</p>
           </>
-        ) : lastIgnisLine ? (
-          <p className="quote-text">&ldquo;{lastIgnisLine.text}&rdquo;</p>
+        ) : visibleTranscript.length ? (
+          <ol className="voice-transcript">
+            {visibleTranscript.map((line, index) => (
+              <li key={`${line.speaker}-${index}`}>
+                <span>{line.speaker}</span>
+                <p>{line.text}</p>
+              </li>
+            ))}
+          </ol>
         ) : (
-          <p className="quote-text quote-placeholder">IGNIS hasn&rsquo;t said anything yet.</p>
+          <p className="quote-text quote-placeholder">
+            IGNIS transcript will appear here when the voice session starts.
+          </p>
         )}
       </div>
       <button disabled={!incident} onClick={() => void (sessionActive ? disable() : enable())}>

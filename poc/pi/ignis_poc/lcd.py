@@ -28,6 +28,7 @@ class LocalLcd:
         self.stopping = False
         self.logo = self.render_logo()
         self.red = self.render_alert()
+        self.off = self.render_off()
         try:
             helper = Path(__file__).resolve().parents[1] / "qnx_lcd_display"
             if not helper.is_file():
@@ -97,6 +98,10 @@ class LocalLcd:
         canvas[:] = (0, 0, 255)
         return canvas
 
+    def render_off(self) -> Any:
+        np = __import__("numpy")
+        return np.zeros((self.height, self.width, 3), dtype=np.uint8)
+
     def set_alert(self, confirmed: bool) -> None:
         if not self.enabled:
             return
@@ -108,7 +113,8 @@ class LocalLcd:
             self.condition.notify_all()
 
     def _display_loop(self) -> None:
-        showing_red = False
+        show_red_next = False
+        alert_was_active = False
         while True:
             with self.condition:
                 if self.stopping:
@@ -117,16 +123,18 @@ class LocalLcd:
 
             try:
                 if alert:
-                    self._write_frame(self.logo if showing_red else self.red)
-                    showing_red = not showing_red
+                    self._write_frame(self.red if show_red_next else self.off)
+                    show_red_next = not show_red_next
+                    alert_was_active = True
                     with self.condition:
                         self.condition.wait_for(
                             lambda: self.stopping or self.alert != alert,
                             timeout=self.flash_seconds,
                         )
-                elif showing_red:
+                elif alert_was_active:
                     self._write_frame(self.logo)
-                    showing_red = False
+                    show_red_next = False
+                    alert_was_active = False
                 else:
                     with self.condition:
                         self.condition.wait_for(

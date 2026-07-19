@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { CameraStage } from "./components/CameraStage";
-import { DemoBanner } from "./components/DemoBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { HealthStrip } from "./components/HealthStrip";
 import { IncidentControls } from "./components/IncidentControls";
@@ -32,7 +31,6 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <DemoBanner callsEnabled={state.demoCallsEnabled} />
       <header className="main-header">
         <div className="brand-block">
           <div className="ignis-mark" aria-hidden="true"><span>I</span></div>

@@ -41,7 +41,7 @@ interface Props {
   staleAfterMs?: number;
 }
 
-export function CameraStage({ frame, detections, zones, staleAfterMs = 1_000 }: Props) {
+export function CameraStage({ frame, detections, zones, staleAfterMs = 5_000 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -142,8 +142,13 @@ export function CameraStage({ frame, detections, zones, staleAfterMs = 1_000 }: 
     image.onload = () => {
       if (cancelled) return;
       clearStage();
+      context.save();
+      context.translate(letterbox.x + letterbox.width / 2, letterbox.y + letterbox.height / 2);
+      context.rotate(Math.PI);
+      context.translate(-(letterbox.x + letterbox.width / 2), -(letterbox.y + letterbox.height / 2));
       context.drawImage(image, letterbox.x, letterbox.y, letterbox.width, letterbox.height);
       drawOverlays();
+      context.restore();
       URL.revokeObjectURL(objectUrl);
     };
     image.onerror = () => URL.revokeObjectURL(objectUrl);

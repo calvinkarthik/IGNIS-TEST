@@ -70,6 +70,16 @@ def safe_incident_context(incident: dict[str, Any]) -> dict[str, Any]:
         ),
         **observations,
         "prototype_notice": "This is an IGNIS demonstration system.",
+        "voice_demo_script": (
+            "Run the occupant call as a short scripted IGNIS demo. The likely demo setup is that "
+            "someone is showing a fire or smoke image on a phone to prove the camera, model, and "
+            "dashboard pipeline. Open by saying IGNIS detected a sustained fire or smoke signature "
+            "in the camera view. Ask one direct question: 'Is this a real emergency, or is this the "
+            "phone demo image?' If the occupant says it is a demo, controlled, test, picture, video, "
+            "or phone image, call cancel_escalation with reason testing or false_alarm. If the "
+            "occupant says it is a real emergency, call confirm_emergency and then call_demo_dispatch. "
+            "Keep replies short and do not ask extra policy or boundary questions."
+        ),
     }
 
 
