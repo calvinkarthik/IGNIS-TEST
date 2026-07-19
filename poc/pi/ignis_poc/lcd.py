@@ -39,6 +39,9 @@ class LocalLcd:
             self.process = subprocess.Popen(
                 [str(helper), str(width), str(height)], stdin=subprocess.PIPE, bufsize=0
             )
+            import time
+
+            time.sleep(0.5)
             self._write_frame(self.logo)
             self.enabled = True
             self.worker = threading.Thread(

@@ -108,7 +108,11 @@ export function CameraStage({ frame, detections, zones, staleAfterMs = 5_000 }: 
         context.fillRect(labelX, labelY - 24, context.measureText(zone.name).width + 18, 22);
         context.fillStyle = "#f6ad48";
         context.font = "600 11px system-ui";
-        context.fillText(zone.name.toUpperCase(), labelX + 9, labelY - 9);
+        context.save();
+        context.translate(labelX + 9, labelY - 9);
+        context.rotate(Math.PI);
+        context.fillText(zone.name.toUpperCase(), 0, 0);
+        context.restore();
       }
       for (const detection of detections?.detections ?? []) {
         const [x1, y1] = normalizedPoint(letterbox, detection.bbox.x_min, detection.bbox.y_min);
@@ -123,7 +127,11 @@ export function CameraStage({ frame, detections, zones, staleAfterMs = 5_000 }: 
         context.fillStyle = fire ? "#ff6b35" : "#d9e9e5";
         context.fillRect(x1, Math.max(letterbox.y, y1 - 24), labelWidth, 24);
         context.fillStyle = fire ? "#160b07" : "#0a1211";
-        context.fillText(label, x1 + 9, Math.max(letterbox.y + 16, y1 - 7));
+        context.save();
+        context.translate(x1 + 9, Math.max(letterbox.y + 16, y1 - 7));
+        context.rotate(Math.PI);
+        context.fillText(label, 0, 0);
+        context.restore();
       }
     };
 
