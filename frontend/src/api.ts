@@ -15,6 +15,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => request<Record<string, unknown>>("/api/health"),
+  setArmed: (armed: boolean) =>
+    request<{ armed: boolean }>("/api/arming", {
+      method: "PUT",
+      body: JSON.stringify({ armed }),
+    }),
   incidents: () => request<Incident[]>("/api/incidents"),
   events: (incidentId: string) =>
     request<TimelineEvent[]>(`/api/incidents/${encodeURIComponent(incidentId)}/events`),

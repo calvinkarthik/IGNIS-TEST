@@ -41,6 +41,7 @@ class DeviceTcpServer:
         self.server: asyncio.AbstractServer | None = None
         self.bound_port: int | None = None
         self.incident_observer: Callable[[str], None] | None = None
+        self.arming_state: Callable[[], bool] | None = None
 
     async def start(self) -> None:
         self.server = await asyncio.start_server(
@@ -160,6 +161,8 @@ class DeviceTcpServer:
             self.registry.latest_detections = data
             await self.hub.broadcast("detections", data)
         elif packet.packet_type == PacketType.INCIDENT_UPDATE:
+            if self.arming_state is not None and not self.arming_state():
+                return
             incident = IncidentUpdate.model_validate(data).model_dump(mode="json")
             self.database.upsert_incident(incident, device_id, hello["boot_id"])
             stored = self.database.get_incident(incident["incident_id"])

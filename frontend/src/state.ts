@@ -13,6 +13,7 @@ import type {
 export const initialState: IgnisState = {
   connection: "CONNECTING",
   demoCallsEnabled: false,
+  armed: false,
   frame: null,
   detections: null,
   incidents: [],
@@ -44,6 +45,7 @@ export function reducer(state: IgnisState, action: Action): IgnisState {
         ...state,
         connection: "LIVE",
         demoCallsEnabled: snapshot.demo_calls_enabled,
+        armed: snapshot.armed,
         frame: snapshot.latest_frame
           ? { ...snapshot.latest_frame, receivedAt: Date.now() }
           : state.frame,
@@ -66,6 +68,8 @@ export function reducer(state: IgnisState, action: Action): IgnisState {
       return { ...state, events: [...state.events, data as TimelineEvent].slice(-100) };
     case "health_update":
       return { ...state, health: { ...state.health, ...(data as Health) } };
+    case "arming_update":
+      return { ...state, armed: Boolean((data as { armed?: boolean }).armed) };
     case "call_update":
       return { ...state, callUpdate: data as Record<string, unknown> };
     case "configuration_update": {

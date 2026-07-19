@@ -50,8 +50,8 @@ class FireVerifier:
         fire_threshold: float = 0.55,
         smoke_threshold: float = 0.65,
         confirm_seconds: float = 1.5,
-        clear_seconds: float = 2.0,
-        reset_seconds: float = 5.0,
+        clear_seconds: float = 5.0,
+        reset_seconds: float = 10.0,
     ) -> None:
         self.device_id = device_id
         self.boot_id = boot_id

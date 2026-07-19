@@ -15,10 +15,20 @@ def test_health_and_websocket_snapshot(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json()["backend"] == "HEALTHY"
     assert response.json()["demo_system"] is True
+    assert response.json()["armed"] is False
     with client.websocket_connect("/ws/live") as websocket:
         snapshot = websocket.receive_json()
         assert snapshot["type"] == "system_snapshot"
         assert snapshot["data"]["demo_system"] is True
+        assert snapshot["data"]["armed"] is False
+
+
+def test_arming_state_updates(client: TestClient) -> None:
+    assert client.get("/api/arming").json() == {"armed": False}
+    response = client.put("/api/arming", json={"armed": True})
+    assert response.status_code == 200
+    assert response.json() == {"armed": True}
+    assert client.get("/api/health").json()["armed"] is True
 
 
 def test_confirm_cancel_and_reset_contracts(
@@ -56,8 +66,8 @@ def test_confirm_cancel_and_reset_contracts(
 def test_calls_are_disabled_by_default(client: TestClient, confirmed_incident: dict) -> None:
     incident_id = seed(client, confirmed_incident)
     response = client.post(f"/api/incidents/{incident_id}/call-demo-dispatch")
-    assert response.status_code == 403
-    assert response.json()["detail"] == "demo_calls_disabled"
+    assert response.status_code == 409
+    assert response.json()["detail"] == "system_unarmed"
 
 
 def test_zones_validate_and_versions_increase(client: TestClient) -> None:
@@ -74,6 +84,6 @@ def test_zones_validate_and_versions_increase(client: TestClient) -> None:
 def test_signed_url_never_leaks_key(client: TestClient, confirmed_incident: dict) -> None:
     incident_id = seed(client, confirmed_incident)
     response = client.get(f"/api/voice/signed-url?incident_id={incident_id}")
-    assert response.status_code == 503
+    assert response.status_code == 409
     assert "api_key" not in response.text.lower()
 

@@ -7,7 +7,15 @@ from typing import Any
 
 
 class LocalLcd:
-    """Own the local LCD and flash red for locally confirmed incidents."""
+    """Own the local LCD and write a safe boot logo.
+
+    The Waveshare 3.5inch RPi LCD (A) has proven unreliable under repeated
+    userspace SPI frame updates on this QNX image. Rapid alert/video writes can
+    leave the controller in a white/corrupt state. Keep the production demo path
+    conservative: initialize the panel, write one complete logo frame, then
+    leave the panel alone while camera, inference, TCP streaming, and voice
+    escalation continue normally.
+    """
 
     def __init__(
         self,
@@ -27,8 +35,6 @@ class LocalLcd:
         self.alert = False
         self.stopping = False
         self.logo = self.render_logo()
-        self.red = self.render_alert()
-        self.off = self.render_off()
         try:
             helper = Path(__file__).resolve().parents[1] / "qnx_lcd_display"
             if not helper.is_file():
@@ -44,12 +50,6 @@ class LocalLcd:
             time.sleep(0.5)
             self._write_frame(self.logo)
             self.enabled = True
-            self.worker = threading.Thread(
-                target=self._display_loop,
-                name="ignis-lcd-alert",
-                daemon=True,
-            )
-            self.worker.start()
         except Exception as exc:
             self._disable(exc)
 
@@ -95,57 +95,8 @@ class LocalLcd:
         )
         return canvas
 
-    def render_alert(self) -> Any:
-        np = __import__("numpy")
-        canvas = np.empty((self.height, self.width, 3), dtype=np.uint8)
-        canvas[:] = (0, 0, 255)
-        return canvas
-
-    def render_off(self) -> Any:
-        np = __import__("numpy")
-        return np.zeros((self.height, self.width, 3), dtype=np.uint8)
-
     def set_alert(self, confirmed: bool) -> None:
-        if not self.enabled:
-            return
-        with self.condition:
-            requested = bool(confirmed)
-            if requested == self.alert:
-                return
-            self.alert = requested
-            self.condition.notify_all()
-
-    def _display_loop(self) -> None:
-        show_red_next = False
-        alert_was_active = False
-        while True:
-            with self.condition:
-                if self.stopping:
-                    return
-                alert = self.alert
-
-            try:
-                if alert:
-                    self._write_frame(self.red if show_red_next else self.off)
-                    show_red_next = not show_red_next
-                    alert_was_active = True
-                    with self.condition:
-                        self.condition.wait_for(
-                            lambda: self.stopping or self.alert != alert,
-                            timeout=self.flash_seconds,
-                        )
-                elif alert_was_active:
-                    self._write_frame(self.logo)
-                    show_red_next = False
-                    alert_was_active = False
-                else:
-                    with self.condition:
-                        self.condition.wait_for(
-                            lambda: self.stopping or self.alert,
-                        )
-            except Exception as exc:
-                self._disable(exc)
-                return
+        self.alert = bool(confirmed)
 
     def _write_frame(self, frame: Any) -> None:
         if self.process is None or self.process.stdin is None:

@@ -61,6 +61,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tcp_server = DeviceTcpServer(selected_settings, database, hub, registry)
         limiter = RateLimiter(selected_settings.action_rate_limit_per_minute)
         tcp_server.incident_observer = timeout_manager.observe
+        app.state.armed = False
+        tcp_server.arming_state = lambda: bool(app.state.armed)
 
         if database.get_configuration("zones") is None:
             zones = _load_json(ROOT / "config" / "zones.example.json")
@@ -75,6 +77,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return {
                 "demo_system": True,
                 "demo_calls_enabled": selected_settings.demo_calls_enabled,
+                "armed": bool(app.state.armed),
                 "devices": database.list_devices(),
                 "incidents": database.list_incidents(25),
                 "latest_frame": registry.latest_frame,
@@ -168,8 +171,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "watchdog_restart_count": device_health.get("watchdog_restart_count", 0),
             "demo_system": True,
             "demo_calls_enabled": request.app.state.settings.demo_calls_enabled,
+            "armed": bool(request.app.state.armed),
             "websocket_clients": request.app.state.hub.client_count,
         }
+
+    @app.get("/api/arming")
+    async def get_arming(request: Request) -> dict[str, Any]:
+        return {"armed": bool(request.app.state.armed)}
+
+    @app.put("/api/arming")
+    async def put_arming(request: Request, body: dict[str, Any]) -> dict[str, Any]:
+        require_rate_limit(request)
+        armed = bool(body.get("armed"))
+        request.app.state.armed = armed
+        payload = {"armed": armed}
+        await request.app.state.hub.broadcast("arming_update", payload)
+        return payload
 
     @app.get("/api/devices")
     async def devices(request: Request) -> list[dict[str, Any]]:
@@ -292,6 +309,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/incidents/{incident_id}/call-demo-dispatch")
     async def call_demo_dispatch(request: Request, incident_id: str) -> dict[str, Any]:
         require_rate_limit(request)
+        if not request.app.state.armed:
+            raise HTTPException(status_code=409, detail="system_unarmed")
         get_incident_or_404(request, incident_id)
         result = await request.app.state.communications.request_demo_call(incident_id)
         event = db(request).add_event(
@@ -332,6 +351,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/voice/signed-url")
     async def voice_signed_url(request: Request, incident_id: str) -> dict[str, Any]:
+        if not request.app.state.armed:
+            raise HTTPException(status_code=409, detail="system_unarmed")
         context = safe_incident_context(get_incident_or_404(request, incident_id))
         signed_url = await request.app.state.communications.signed_url()
         return {"signed_url": signed_url, "context": context}

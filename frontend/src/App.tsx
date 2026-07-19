@@ -6,6 +6,7 @@ import { IncidentControls } from "./components/IncidentControls";
 import { StatusPanel } from "./components/StatusPanel";
 import { Timeline } from "./components/Timeline";
 import { VoicePanel } from "./components/VoicePanel";
+import { api } from "./api";
 import { useIgnisSocket } from "./hooks/useIgnisSocket";
 import type { ZoneConfiguration } from "./types";
 
@@ -13,6 +14,7 @@ export default function App() {
   const { state, refreshEvents } = useIgnisSocket();
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
   const [localZones, setLocalZones] = useState<ZoneConfiguration | null>(null);
+  const [armingPending, setArmingPending] = useState(false);
   const incident = useMemo(
     () =>
       state.incidents.find((item) => item.incident_id === selectedIncidentId) ??
@@ -29,6 +31,15 @@ export default function App() {
     if (incident) void refreshEvents(incident.incident_id);
   }, [incident?.incident_id]);
 
+  const toggleArmed = async () => {
+    setArmingPending(true);
+    try {
+      await api.setArmed(!state.armed);
+    } finally {
+      setArmingPending(false);
+    }
+  };
+
   return (
     <div className="app-shell">
       <header className="main-header">
@@ -37,6 +48,13 @@ export default function App() {
           <div><h1>IGNIS</h1><p>Visual incident intelligence</p></div>
         </div>
         <div className="header-center"><h2>QNX edge authority</h2></div>
+        <button
+          className={`arming-toggle ${state.armed ? "armed" : "unarmed"}`}
+          disabled={armingPending}
+          onClick={() => void toggleArmed()}
+        >
+          {state.armed ? "Armed" : "Unarmed"}
+        </button>
         <div className={`connection-pill ${state.connection.toLowerCase()}`}>
           <span />{state.connection}
         </div>
@@ -60,7 +78,7 @@ export default function App() {
 
           <div className="side-column">
             <ErrorBoundary fallbackLabel="IGNIS voice">
-              <VoicePanel incident={incident} />
+              <VoicePanel incident={state.armed ? incident : null} />
             </ErrorBoundary>
             <Timeline events={state.events} />
           </div>
@@ -90,7 +108,7 @@ export default function App() {
               </div>
             )}
           </aside>
-          <IncidentControls incident={incident} callsEnabled={state.demoCallsEnabled} />
+          <IncidentControls incident={incident} callsEnabled={state.demoCallsEnabled && state.armed} />
         </section>
       </main>
 

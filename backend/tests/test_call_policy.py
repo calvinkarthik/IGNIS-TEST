@@ -18,6 +18,7 @@ def test_allowlisted_mock_call_and_duplicate_blocked(
     settings.demo_allowed_numbers = ("+14165550123",)
     settings.call_provider = "mock"
     with make_client(settings) as client:
+        client.put("/api/arming", json={"armed": True})
         client.app.state.database.upsert_incident(
             confirmed_incident, "ignis-qnxpi-01", "boot-test"
         )
@@ -38,6 +39,7 @@ def test_non_allowlisted_and_emergency_numbers_are_rejected(
     settings.demo_dispatch_number = "+14165550911"
     settings.demo_allowed_numbers = ("+14165550911",)
     with make_client(settings) as client:
+        client.put("/api/arming", json={"armed": True})
         client.app.state.database.upsert_incident(
             confirmed_incident, "ignis-qnxpi-01", "boot-test"
         )

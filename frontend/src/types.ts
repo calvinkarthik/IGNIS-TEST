@@ -84,6 +84,7 @@ export interface TimelineEvent {
 
 export interface Health {
   status?: string;
+  armed?: boolean;
   qnx_connected?: boolean;
   camera?: string;
   inference?: string;
@@ -112,6 +113,7 @@ export interface ZoneConfiguration {
 export interface Snapshot {
   demo_system: true;
   demo_calls_enabled: boolean;
+  armed: boolean;
   devices: Array<{ device_id: string; connected: boolean; health?: Health }>;
   incidents: Incident[];
   latest_frame?: Omit<FramePacket, "receivedAt"> | null;
@@ -130,6 +132,7 @@ export interface Envelope<T = unknown> {
 export interface IgnisState {
   connection: "CONNECTING" | "LIVE" | "RECONNECTING" | "OFFLINE";
   demoCallsEnabled: boolean;
+  armed: boolean;
   frame: FramePacket | null;
   detections: DetectionPacket | null;
   incidents: Incident[];
