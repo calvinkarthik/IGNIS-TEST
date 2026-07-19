@@ -51,6 +51,7 @@ class FireVerifier:
         smoke_threshold: float = 0.65,
         confirm_seconds: float = 1.5,
         clear_seconds: float = 2.0,
+        reset_seconds: float = 5.0,
     ) -> None:
         self.device_id = device_id
         self.boot_id = boot_id
@@ -60,6 +61,7 @@ class FireVerifier:
         self.smoke_threshold = smoke_threshold
         self.confirm_ns = int(confirm_seconds * 1e9)
         self.clear_ns = int(clear_seconds * 1e9)
+        self.reset_ns = int(reset_seconds * 1e9)
         self.counter = 0
         self.state = FireState()
 
@@ -85,10 +87,15 @@ class FireVerifier:
             if hits >= self.required and monotonic_ns - state.first_detection_ns >= self.confirm_ns:
                 state.hazard_state = "CONFIRMED"
                 state.confirmed = True
-        elif state.incident_id and monotonic_ns - state.last_relevant_ns >= self.clear_ns:
-            if state.confirmed:
+        elif state.incident_id:
+            missing_ns = monotonic_ns - state.last_relevant_ns
+            if state.confirmed and missing_ns >= self.reset_ns:
+                self.window.clear()
+                self.state = FireState()
+                state = self.state
+            elif state.confirmed and missing_ns >= self.clear_ns:
                 state.hazard_state = "VISUAL_SIGNATURE_LOST"
-            else:
+            elif not state.confirmed and missing_ns >= self.clear_ns:
                 self.window.clear()
                 self.state = FireState()
                 state = self.state

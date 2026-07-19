@@ -43,3 +43,20 @@ def test_confirmed_signature_loss_is_not_called_safe() -> None:
     state = verifier.update(4_000_000_000, [])
     assert state.hazard_state == "VISUAL_SIGNATURE_LOST"
     assert state.confirmed is True
+
+
+def test_confirmed_incident_fully_resets_after_five_clear_seconds() -> None:
+    verifier = FireVerifier("device", "boot")
+    for index in range(6):
+        state = verifier.update(index * 300_000_000, [FIRE])
+    assert state.confirmed is True
+
+    state = verifier.update(6_600_000_000, [])
+    assert state.hazard_state == "CLEAR"
+    assert state.confirmed is False
+    assert state.incident_id is None
+
+    for index in range(5):
+        state = verifier.update(10_000_000_000 + index * 500_000_000, [FIRE])
+    assert state.hazard_state == "VERIFYING"
+    assert state.confirmed is False

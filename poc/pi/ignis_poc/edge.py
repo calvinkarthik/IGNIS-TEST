@@ -216,8 +216,6 @@ def run(args: argparse.Namespace) -> None:
                 },
                 monotonic_ns,
             )
-            if lcd is not None:
-                lcd.show(frame, detections)
             if state.incident_id:
                 response = "AWAITING_RESPONSE" if state.confirmed else "IDLE"
                 stream.send(
@@ -356,10 +354,10 @@ def parser() -> argparse.ArgumentParser:
         "--lcd",
         action="store_true",
         default=os.getenv("IGNIS_LCD_ENABLED", "0").lower() in {"1", "true", "yes", "on"},
-        help="show an annotated preview through the Pi's native QNX Screen service",
+        help="write one static IGNIS logo through the Pi's native QNX SPI service",
     )
-    result.add_argument("--lcd-width", type=int, default=int(os.getenv("IGNIS_LCD_WIDTH", "320")))
-    result.add_argument("--lcd-height", type=int, default=int(os.getenv("IGNIS_LCD_HEIGHT", "480")))
+    result.add_argument("--lcd-width", type=int, default=int(os.getenv("IGNIS_LCD_WIDTH", "480")))
+    result.add_argument("--lcd-height", type=int, default=int(os.getenv("IGNIS_LCD_HEIGHT", "320")))
     return result
 
 
